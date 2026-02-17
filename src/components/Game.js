@@ -25,7 +25,7 @@ export function Game(state) {
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <div class="text-2xl font-bold text-white ${roundTime <= 10 ? 'text-red-400 animate-pulse' : ''}">${roundTime}s</div>
+        <div id="timer-display" class="text-2xl font-bold text-white ${roundTime <= 10 ? 'text-red-400 animate-pulse' : ''}">${roundTime}s</div>
         <button id="menu-btn" class="px-3 py-1 bg-gray-700 text-xs text-white rounded hover:bg-gray-600">Menu</button>
       </div>
     </div>

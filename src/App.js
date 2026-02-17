@@ -30,6 +30,7 @@ export class App {
       showScoreCalc: false
     };
     this.timer = null;
+    this.tutorialTimeout = null;
   }
 
   setState(newState) {
@@ -52,13 +53,17 @@ export class App {
       roundTime: 60,
       isFirstRound: true
     });
-    // Do not start the round timer while in the tutorial; wait for the real round to begin.
+    this.startTimer();
+
+    if (this.tutorialTimeout) clearTimeout(this.tutorialTimeout);
+    if (TUTORIAL_STEPS[0].action === 'next') {
+      this.tutorialTimeout = setTimeout(this.advanceTutorial, 5000);
+    }
   }
 
   startTimer() {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
-      // Only decrement the round timer when actively playing — tutorial pauses the timer.
       if (this.state.gameState === 'playing') {
         if (this.state.roundTime <= 0) {
           if (this.state.selectedGlyphs.length > 0) {
@@ -67,7 +72,14 @@ export class App {
             this.setState({ gameState: 'result' });
           }
         } else {
-          this.setState({ roundTime: this.state.roundTime - 1 });
+          this.state.roundTime -= 1;
+          const timerEl = this.container.querySelector('#timer-display');
+          if (timerEl) {
+            timerEl.textContent = `${this.state.roundTime}s`;
+            if (this.state.roundTime <= 10) {
+              timerEl.classList.add('text-red-400', 'animate-pulse');
+            }
+          }
         }
       }
     }, 1000);
@@ -169,18 +181,21 @@ export class App {
       roundTime: 60,
       isFirstRound: false
     });
-    // Ensure the round timer runs when a real round starts.
-    this.startTimer();
   }
 
   advanceTutorial = () => {
+    if (this.tutorialTimeout) {
+      clearTimeout(this.tutorialTimeout);
+      this.tutorialTimeout = null;
+    }
+
     if (this.state.tutorialStep < TUTORIAL_STEPS.length - 1) {
       const nextStep = this.state.tutorialStep + 1;
       this.setState({ tutorialStep: nextStep });
       
       // Auto-advance if it's a "next" action
       if (TUTORIAL_STEPS[nextStep].action === 'next') {
-        setTimeout(this.advanceTutorial, 2000);
+        this.tutorialTimeout = setTimeout(this.advanceTutorial, 5000);
       }
     } else {
       this.nextRound();
