@@ -1,0 +1,205 @@
+import { Glyph } from './glyphs';
+
+export interface AudienceMember {
+  id: string;
+  name: string;
+  creature: string;
+  emoji: string;
+  sensitivityGlyphs: string[];
+  hates: string[];
+  loves: string[];
+  reactionPattern: 'delight' | 'confusion' | 'disgust' | 'mixed';
+  influenceReward: number;
+  reactionWindow: number;
+  specialAbility?: string;
+  description: string;
+}
+
+export const AUDIENCES: AudienceMember[] = [
+  {
+    id: 'glimmerbeast',
+    name: 'The Glimmerbeast',
+    creature: 'A crystalline entity that hums with judgmental light',
+    emoji: '💎',
+    sensitivityGlyphs: ['body', 'violation', 'timing'],
+    hates: ['body', 'violation'],
+    loves: ['recognition', 'timing', 'self-deprecation'],
+    reactionPattern: 'delight',
+    influenceReward: 50,
+    reactionWindow: 2000,
+    description: 'Hates bodily humor. Loves clever misdirection. High reward, tiny window.'
+  },
+  {
+    id: 'murkling',
+    name: 'The Murkling',
+    creature: 'A shadowy blob that absorbs light and expectations',
+    emoji: '🌫️',
+    sensitivityGlyphs: ['body', 'emotion', 'timing'],
+    hates: ['recognition', 'cosmic'],
+    loves: ['body', 'emotion', 'timing'],
+    reactionPattern: 'confusion',
+    influenceReward: 40,
+    reactionWindow: 4000,
+    specialAbility: 'Confusion meter is actually delight in disguise',
+    description: 'Only responds to body + sadness combos. Needs 4+ card jokes. Confusion = delight.'
+  },
+  {
+    id: 'static-council',
+    name: 'The Static Council',
+    creature: 'Three judges, each voting independently from different frequencies',
+    emoji: '📻',
+    sensitivityGlyphs: ['self-deprecation', 'timing', 'recognition'],
+    hates: ['violation', 'body'],
+    loves: ['self-deprecation', 'recognition'],
+    reactionPattern: 'mixed',
+    influenceReward: 60,
+    reactionWindow: 3000,
+    specialAbility: 'One loves self-deprecation, one hates it, one is random',
+    description: 'Forces hedging bets. Success requires pleasing all three simultaneously.'
+  },
+  {
+    id: 'echo',
+    name: 'The Echo',
+    creature: 'A mirror that reflects your last joke structure back at you',
+    emoji: '🪞',
+    sensitivityGlyphs: ['timing', 'recognition', 'cosmic'],
+    hates: ['repetition'],
+    loves: ['timing', 'recognition'],
+    reactionPattern: 'delight',
+    influenceReward: 45,
+    reactionWindow: 2500,
+    specialAbility: 'Mirrors your last successful joke structure. Punishes repetition.',
+    description: 'Teaches adaptation. Repeat a joke and face the consequences.'
+  },
+  {
+    id: 'void-watcher',
+    name: 'The Void Watcher',
+    creature: 'An eye that sees through all pretense to the cosmic joke',
+    emoji: '👁️',
+    sensitivityGlyphs: ['cosmic', 'emotion', 'logic'],
+    hates: ['body', 'violation'],
+    loves: ['cosmic', 'emotion', 'logic'],
+    reactionPattern: 'delight',
+    influenceReward: 55,
+    reactionWindow: 3500,
+    description: 'Only appreciates the truly absurd. Mundane humor is invisible to it.'
+  },
+  {
+    id: 'giggle-golem',
+    name: 'The Giggle Golem',
+    creature: 'A stone construct powered entirely by suppressed laughter',
+    emoji: '🗿',
+    sensitivityGlyphs: ['timing', 'body', 'surprise'],
+    hates: ['logic', 'emotion'],
+    loves: ['timing', 'body', 'surprise'],
+    reactionPattern: 'disgust',
+    influenceReward: 35,
+    reactionWindow: 3000,
+    description: 'Simple creature. Likes physical comedy. Overthinks make it crumble.'
+  },
+  {
+    id: 'philosopher-fungus',
+    name: 'The Philosopher Fungus',
+    creature: 'A sentient mushroom that questions the nature of humor itself',
+    emoji: '🍄',
+    sensitivityGlyphs: ['logic', 'recognition', 'self-deprecation'],
+    hates: ['body', 'violation'],
+    loves: ['logic', 'recognition', 'self-deprecation'],
+    reactionPattern: 'confusion',
+    influenceReward: 50,
+    reactionWindow: 5000,
+    specialAbility: 'Requires logical consistency to appreciate',
+    description: 'Only laughs at jokes that make philosophical sense. A true intellectual.'
+  },
+  {
+    id: 'chaos-sprite',
+    name: 'The Chaos Sprite',
+    creature: 'A tiny vortex of pure unpredictability',
+    emoji: '🧚',
+    sensitivityGlyphs: ['cosmic', 'timing', 'surprise'],
+    hates: ['logic', 'repetition'],
+    loves: ['cosmic', 'timing', 'surprise'],
+    reactionPattern: 'delight',
+    influenceReward: 40,
+    reactionWindow: 1500,
+    specialAbility: 'Reaction is amplified but fleeting',
+    description: 'Loves chaos. Hates predictability. The more absurd, the better.'
+  }
+];
+
+export const getRandomAudience = (count: number = 3): AudienceMember[] => {
+  const shuffled = [...AUDIENCES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
+
+export const calculateJokeScore = (
+  jokeGlyphs: Glyph[],
+  audience: AudienceMember
+): { delight: number; disgust: number; confusion: number; total: number } => {
+  let delight = 0;
+  let disgust = 0;
+  let confusion = 0;
+
+  jokeGlyphs.forEach(glyph => {
+    if (audience.loves.includes(glyph.id)) {
+      delight += 20;
+    }
+    if (audience.hates.includes(glyph.id)) {
+      disgust += 25;
+    }
+    // Synergy bonuses
+    jokeGlyphs.forEach(other => {
+      if (other.id !== glyph.id) {
+        // violation + recognition = dark humor
+        if ((glyph.category === 'violation' && other.category === 'recognition') ||
+            (glyph.category === 'recognition' && other.category === 'violation')) {
+          delight += 15;
+        }
+        // timing + self-deprecation = awkward charm
+        if ((glyph.category === 'timing' && other.category === 'self-deprecation') ||
+            (glyph.category === 'self-deprecation' && other.category === 'timing')) {
+          delight += 10;
+        }
+        // body + emotion = melancholy gold
+        if ((glyph.category === 'body' && other.category === 'emotion') ||
+            (glyph.category === 'emotion' && other.category === 'body')) {
+          delight += 12;
+        }
+        // violation + violation = audience walks out
+        if (glyph.category === 'violation' && other.category === 'violation') {
+          disgust += 30;
+        }
+      }
+    });
+  });
+
+  // Position bonuses (setup -> twist -> release)
+  if (jokeGlyphs.length >= 3) {
+    const first = jokeGlyphs[0].category;
+    const second = jokeGlyphs[1].category;
+    const third = jokeGlyphs[2].category;
+    
+    // Good structure: setup -> twist -> release
+    if (first === 'timing' && second === 'recognition' && third === 'timing') {
+      delight += 25;
+    }
+    // Callback structure
+    if (first === 'recognition' && second === 'violation' && third === 'timing') {
+      delight += 20;
+    }
+  }
+
+  // Base confusion for complex jokes
+  if (jokeGlyphs.length >= 4) {
+    confusion += jokeGlyphs.length * 5;
+  }
+
+  // Cap values
+  delight = Math.min(100, Math.max(0, delight));
+  disgust = Math.min(100, Math.max(0, disgust));
+  confusion = Math.min(100, Math.max(0, confusion));
+
+  const total = delight - disgust - confusion / 2;
+
+  return { delight, disgust, confusion, total };
+};
