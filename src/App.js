@@ -52,13 +52,14 @@ export class App {
       roundTime: 60,
       isFirstRound: true
     });
-    this.startTimer();
+    // Do not start the round timer while in the tutorial; wait for the real round to begin.
   }
 
   startTimer() {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
-      if (this.state.gameState === 'playing' || this.state.gameState === 'tutorial') {
+      // Only decrement the round timer when actively playing — tutorial pauses the timer.
+      if (this.state.gameState === 'playing') {
         if (this.state.roundTime <= 0) {
           if (this.state.selectedGlyphs.length > 0) {
             this.deliverJoke();
@@ -168,6 +169,8 @@ export class App {
       roundTime: 60,
       isFirstRound: false
     });
+    // Ensure the round timer runs when a real round starts.
+    this.startTimer();
   }
 
   advanceTutorial = () => {
