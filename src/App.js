@@ -1,4 +1,3 @@
-import React from 'react';
 import { getRandomGlyphs } from './data/glyphs.js';
 import { getRandomAudience } from './data/audiences.js';
 import { calculateJokeScore } from './utils/scoring.js';
@@ -7,57 +6,97 @@ import { Menu } from './components/Menu.js';
 import { Game } from './components/Game.js';
 import { Tutorial } from './components/Tutorial.js';
 
-export function App() {
-  const [gameState, setGameState] = React.useState('menu');
-  const [hand, setHand] = React.useState([]);
-  const [selectedGlyphs, setSelectedGlyphs] = React.useState([]);
-  const [audiences, setAudiences] = React.useState([]);
-  const [reactions, setReactions] = React.useState({});
-  const [stats, setStats] = React.useState({
-    influence: 0,
-    totalJokes: 0,
-    successfulJokes: 0,
-    consecutiveFailures: 0,
-    highScore: 0,
-  });
-  const [lastJokeScore, setLastJokeScore] = React.useState(null);
-  const [showHiddenSensitivity, setShowHiddenSensitivity] = React.useState(false);
-  const [roundTime, setRoundTime] = React.useState(60);
-  
-  const [tutorialStep, setTutorialStep] = React.useState(0);
-  const [isFirstRound, setIsFirstRound] = React.useState(true);
-  const [showScoreCalc, setShowScoreCalc] = React.useState(false);
+export class App {
+  constructor(container) {
+    this.container = container;
+    this.state = {
+      gameState: 'menu',
+      hand: [],
+      selectedGlyphs: [],
+      audiences: [],
+      reactions: {},
+      stats: {
+        influence: 0,
+        totalJokes: 0,
+        successfulJokes: 0,
+        consecutiveFailures: 0,
+        highScore: 0,
+      },
+      lastJokeScore: null,
+      showHiddenSensitivity: false,
+      roundTime: 60,
+      tutorialStep: 0,
+      isFirstRound: true,
+      showScoreCalc: false
+    };
+    this.timer = null;
+  }
 
-  const startGame = React.useCallback(() => {
-    setGameState('tutorial');
-    setTutorialStep(0);
-    setHand(TUTORIAL_GLYPHS);
-    setAudiences([TUTORIAL_AUDIENCE]);
-    setSelectedGlyphs([]);
-    setReactions({});
-    setStats({ influence: 0, totalJokes: 0, successfulJokes: 0, consecutiveFailures: 0, highScore: 0 });
-    setShowHiddenSensitivity(false);
-    setRoundTime(60);
-    setIsFirstRound(true);
-  }, []);
+  setState(newState) {
+    this.state = { ...this.state, ...newState };
+    this.render();
+  }
 
-  const selectGlyph = React.useCallback((glyph) => {
-    setSelectedGlyphs(prev => {
-      const isSelected = prev.some(g => g.id === glyph.id && g.symbol === glyph.symbol);
-      if (isSelected) {
-        return prev.filter((_, i) => i !== prev.findIndex(pg => pg.id === glyph.id && pg.symbol === glyph.symbol));
-      } else if (prev.length < 5) {
-        return [...prev, glyph];
-      }
-      return prev;
+  init() {
+    this.render();
+  }
+
+  startGame = () => {
+    this.setState({
+      gameState: 'tutorial',
+      tutorialStep: 0,
+      hand: TUTORIAL_GLYPHS,
+      audiences: [TUTORIAL_AUDIENCE],
+      selectedGlyphs: [],
+      reactions: {},
+      roundTime: 60,
+      isFirstRound: true
     });
-  }, []);
+    this.startTimer();
+  }
 
-  const deliverJoke = React.useCallback(() => {
-    if (selectedGlyphs.length === 0) return;
+  startTimer() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      if (this.state.gameState === 'playing' || this.state.gameState === 'tutorial') {
+        if (this.state.roundTime <= 0) {
+          if (this.state.selectedGlyphs.length > 0) {
+            this.deliverJoke();
+          } else {
+            this.setState({ gameState: 'result' });
+          }
+        } else {
+          this.setState({ roundTime: this.state.roundTime - 1 });
+        }
+      }
+    }, 1000);
+  }
+
+  selectGlyph = (glyph) => {
+    const { selectedGlyphs } = this.state;
+    const index = selectedGlyphs.findIndex(g => g.id === glyph.id && g.symbol === glyph.symbol);
     
-    setGameState('delivering');
-    setShowScoreCalc(true);
+    let newSelected;
+    if (index > -1) {
+      newSelected = selectedGlyphs.filter((_, i) => i !== index);
+    } else if (selectedGlyphs.length < 5) {
+      newSelected = [...selectedGlyphs, glyph];
+    } else {
+      newSelected = selectedGlyphs;
+    }
+    
+    this.setState({ selectedGlyphs: newSelected });
+  }
+
+  removeGlyph = (index) => {
+    this.setState({
+      selectedGlyphs: this.state.selectedGlyphs.filter((_, i) => i !== index)
+    });
+  }
+
+  deliverJoke = () => {
+    const { selectedGlyphs, audiences } = this.state;
+    if (selectedGlyphs.length === 0) return;
     
     const newReactions = {};
     audiences.forEach(audience => {
@@ -69,14 +108,15 @@ export function App() {
       };
     });
     
-    setReactions(newReactions);
-  }, [selectedGlyphs, audiences]);
+    this.setState({
+      gameState: 'delivering',
+      showScoreCalc: true,
+      reactions: newReactions
+    });
+  }
 
-  const handleScoreComplete = React.useCallback((score) => {
-    setShowScoreCalc(false);
-    
+  handleScoreComplete = (score) => {
     const totalScore = score.total;
-    
     let feedback = '';
     if (totalScore > 100) feedback = 'LEGENDARY! The audience is transcendent!';
     else if (totalScore > 50) feedback = 'Brilliant! They love it!';
@@ -85,150 +125,120 @@ export function App() {
     else if (totalScore > -100) feedback = 'Oof. They\'re not feeling it.';
     else feedback = 'CATASTROPHIC! The audience has left!';
     
-    setLastJokeScore({
-      total: totalScore,
-      details: feedback,
-    });
-    
     const isSuccessful = totalScore > 0;
-    setStats(prev => {
-      const newConsecutive = isSuccessful ? 0 : prev.consecutiveFailures + 1;
-      const newInfluence = prev.influence + (isSuccessful ? Math.round(totalScore / 10) : -10);
+    const newStats = {
+      ...this.state.stats,
+      influence: Math.max(0, this.state.stats.influence + (isSuccessful ? Math.round(totalScore / 10) : -10)),
+      totalJokes: this.state.stats.totalJokes + 1,
+      successfulJokes: this.state.stats.successfulJokes + (isSuccessful ? 1 : 0),
+      consecutiveFailures: isSuccessful ? 0 : this.state.stats.consecutiveFailures + 1,
+    };
+    newStats.highScore = Math.max(this.state.stats.highScore, newStats.influence);
+
+    this.setState({
+      showScoreCalc: false,
+      lastJokeScore: { total: totalScore, details: feedback },
+      stats: newStats,
+      showHiddenSensitivity: newStats.consecutiveFailures >= 2,
+      gameState: 'result'
+    });
+  }
+
+  nextRound = () => {
+    this.setState({
+      gameState: 'playing',
+      hand: getRandomGlyphs(8),
+      audiences: getRandomAudience(3),
+      selectedGlyphs: [],
+      reactions: {},
+      lastJokeScore: null,
+      roundTime: 60,
+      isFirstRound: false
+    });
+  }
+
+  advanceTutorial = () => {
+    if (this.state.tutorialStep < TUTORIAL_STEPS.length - 1) {
+      const nextStep = this.state.tutorialStep + 1;
+      this.setState({ tutorialStep: nextStep });
       
-      return {
-        ...prev,
-        influence: Math.max(0, newInfluence),
-        totalJokes: prev.totalJokes + 1,
-        successfulJokes: prev.successfulJokes + (isSuccessful ? 1 : 0),
-        consecutiveFailures: newConsecutive,
-        highScore: Math.max(prev.highScore, prev.influence + (isSuccessful ? Math.round(totalScore / 10) : 0)),
+      // Auto-advance if it's a "next" action
+      if (TUTORIAL_STEPS[nextStep].action === 'next') {
+        setTimeout(this.advanceTutorial, 2000);
+      }
+    } else {
+      this.nextRound();
+    }
+  }
+
+  render() {
+    this.container.innerHTML = '';
+    let element;
+
+    if (this.state.gameState === 'menu') {
+      element = Menu({ onStartGame: this.startGame, stats: this.state.stats });
+    } else if (this.state.gameState === 'tutorial') {
+      element = Tutorial({
+        ...this.state,
+        onGlyphSelect: this.selectGlyph,
+        onDeliverJoke: this.deliverJoke,
+        onScoreComplete: this.handleScoreComplete,
+        onAdvance: this.advanceTutorial
+      });
+    } else {
+      element = Game({
+        ...this.state,
+        onGlyphSelect: this.selectGlyph,
+        onDeliverJoke: this.deliverJoke,
+        onScoreComplete: this.handleScoreComplete,
+        onNextRound: this.nextRound,
+        onBackToMenu: () => {
+          if (this.timer) clearInterval(this.timer);
+          this.setState({ gameState: 'menu' });
+        },
+        onRemoveGlyph: this.removeGlyph
+      });
+    }
+
+    if (typeof element === 'string') {
+      this.container.innerHTML = element;
+      this.attachEventListeners();
+    } else {
+      this.container.appendChild(element);
+    }
+  }
+
+  attachEventListeners() {
+    const buttons = this.container.querySelectorAll('[data-click]');
+    buttons.forEach(btn => {
+      const action = btn.getAttribute('data-click');
+      const param = btn.getAttribute('data-param');
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (this[action]) {
+          this[action](param ? JSON.parse(param) : undefined);
+        }
       };
     });
-    
-    if (stats.consecutiveFailures >= 2) {
-      setShowHiddenSensitivity(true);
-    }
-    
-    setTimeout(() => {
-      setGameState('result');
-    }, 2000);
-  }, [stats.consecutiveFailures]);
 
-  const handleTutorialScoreComplete = React.useCallback((score) => {
-    setShowScoreCalc(false);
-    setLastJokeScore({
-      total: score.total,
-      details: 'Tutorial complete! Ready for the real show?',
+    // Special handlers for lists
+    const glyphCards = this.container.querySelectorAll('[data-glyph-id]');
+    glyphCards.forEach(card => {
+        card.onclick = () => {
+            const id = card.getAttribute('data-glyph-id');
+            const symbol = card.getAttribute('data-glyph-symbol');
+            // Re-find the glyph object
+            const glyph = [...this.state.hand, ...this.state.selectedGlyphs].find(g => g.id === id && g.symbol === symbol);
+            if (glyph) this.selectGlyph(glyph);
+        };
     });
-    setTimeout(() => {
-      setGameState('result');
-    }, 1500);
-  }, []);
 
-  const nextRound = React.useCallback(() => {
-    if (isFirstRound) {
-      setIsFirstRound(false);
-      setHand(getRandomGlyphs(8));
-      setAudiences(getRandomAudience(3));
-      setSelectedGlyphs([]);
-      setReactions({});
-      setLastJokeScore(null);
-      setRoundTime(60);
-      setGameState('playing');
-    } else {
-      setHand(getRandomGlyphs(8));
-      setSelectedGlyphs([]);
-      setReactions({});
-      setLastJokeScore(null);
-      setRoundTime(60);
-      setGameState('playing');
-    }
-  }, [isFirstRound]);
-
-  const advanceTutorial = React.useCallback(() => {
-    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
-      setTutorialStep(prev => prev + 1);
-    } else {
-      setIsFirstRound(false);
-      setHand(getRandomGlyphs(8));
-      setAudiences(getRandomAudience(3));
-      setSelectedGlyphs([]);
-      setReactions({});
-      setLastJokeScore(null);
-      setRoundTime(60);
-      setGameState('playing');
-    }
-  }, [tutorialStep]);
-
-  React.useEffect(() => {
-    if (gameState !== 'playing' && gameState !== 'tutorial') return;
-    
-    const timer = setInterval(() => {
-      setRoundTime(prev => {
-        if (prev <= 1) {
-          if (selectedGlyphs.length > 0) {
-            deliverJoke();
-          } else {
-            setGameState('result');
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [gameState, selectedGlyphs, deliverJoke]);
-
-  React.useEffect(() => {
-    if (gameState !== 'tutorial') return;
-    
-    const step = TUTORIAL_STEPS[tutorialStep];
-    if (!step) return;
-    
-    if (step.action === 'next') {
-      const timer = setTimeout(advanceTutorial, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [gameState, tutorialStep, advanceTutorial]);
-
-  if (gameState === 'menu') {
-    return React.createElement(Menu, {
-      onStartGame: startGame,
-      stats
+    const removeGlyphBtns = this.container.querySelectorAll('[data-remove-index]');
+    removeGlyphBtns.forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            this.removeGlyph(parseInt(btn.getAttribute('data-remove-index')));
+        };
     });
   }
-
-  if (gameState === 'tutorial') {
-    return React.createElement(Tutorial, {
-      tutorialStep,
-      hand,
-      selectedGlyphs,
-      audiences,
-      reactions,
-      showScoreCalc,
-      onGlyphSelect: selectGlyph,
-      onDeliverJoke: deliverJoke,
-      onScoreComplete: handleTutorialScoreComplete
-    });
-  }
-
-  return React.createElement(Game, {
-    hand,
-    selectedGlyphs,
-    audiences,
-    reactions,
-    stats,
-    roundTime,
-    gameState,
-    showHiddenSensitivity,
-    showScoreCalc,
-    lastJokeScore,
-    onGlyphSelect: selectGlyph,
-    onDeliverJoke: deliverJoke,
-    onScoreComplete: handleScoreComplete,
-    onNextRound: nextRound,
-    onBackToMenu: () => setGameState('menu'),
-    onRemoveGlyph: (index) => setSelectedGlyphs(prev => prev.filter((_, i) => i !== index))
-  });
 }

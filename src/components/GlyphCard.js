@@ -1,4 +1,3 @@
-import React from 'react';
 import { cn } from '../utils/cn.js';
 
 const colorClasses = {
@@ -17,35 +16,27 @@ const glowClasses = {
   gold: 'card-glow-gold',
 };
 
-export function GlyphCard({ glyph, onClick, selected, disabled, size = 'md', showBack = false }) {
-  const sizeClasses = {
-    sm: 'w-12 h-16 text-lg',
-    md: 'w-16 h-24 text-2xl',
-    lg: 'w-20 h-28 text-3xl',
-  };
+const sizeClasses = {
+  sm: 'w-12 h-16 text-lg',
+  md: 'w-16 h-24 text-2xl',
+  lg: 'w-20 h-28 text-3xl',
+};
 
+export function GlyphCardHTML({ glyph, selected, disabled, size = 'md', showBack = false }) {
   if (showBack) {
-    return React.createElement(
-      'div',
-      {
-        className: cn(
-          sizeClasses[size],
-          'rounded-xl border-2 border-purple-400 bg-gradient-to-br from-purple-600 to-purple-900',
-          'flex items-center justify-center',
-          'shadow-lg shadow-purple-500/30',
-          'transition-transform duration-200'
-        )
-      },
-      React.createElement('span', { className: 'text-3xl opacity-50' }, '🎭')
-    );
+    return `
+      <div class="${cn(sizeClasses[size], 'rounded-xl border-2 border-purple-400 bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center shadow-lg shadow-purple-500/30 transition-transform duration-200')}">
+        <span class="text-3xl opacity-50">🎭</span>
+      </div>
+    `;
   }
 
-  return React.createElement(
-    'button',
-    {
-      onClick,
-      disabled,
-      className: cn(
+  return `
+    <button 
+      data-glyph-id="${glyph.id}" 
+      data-glyph-symbol="${glyph.symbol}"
+      ${disabled ? 'disabled' : ''}
+      class="${cn(
         sizeClasses[size],
         'rounded-xl border-2',
         colorClasses[glyph.color],
@@ -55,10 +46,11 @@ export function GlyphCard({ glyph, onClick, selected, disabled, size = 'md', sho
         'transition-all duration-200',
         'hover:scale-105 hover:shadow-xl',
         selected && 'ring-4 ring-white ring-opacity-80 scale-110',
-        disabled && 'opacity-50 cursor-not-allowed hover:scale-100'
-      )
-    },
-    React.createElement('span', { className: 'text-white font-bold drop-shadow-lg' }, glyph.symbol),
-    React.createElement('span', { className: 'text-[8px] text-white/80 font-medium leading-tight px-1 text-center' }, glyph.name)
-  );
+        disabled && 'opacity-50 cursor-not-allowed'
+      )}"
+    >
+      <span class="text-white font-bold drop-shadow-lg">${glyph.symbol}</span>
+      <span class="text-[8px] text-white/80 font-medium leading-tight px-1 text-center">${glyph.name}</span>
+    </button>
+  `;
 }
