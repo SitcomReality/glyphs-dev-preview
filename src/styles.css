@@ -113,3 +113,30 @@
   text-shadow: 0 0 10px currentColor;
   z-index: 100;
 }
+
+/* Tutorial Highlighting */
+.tutorial-highlight-ring {
+  position: relative;
+  z-index: 50;
+}
+
+.tutorial-highlight-ring::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 4px solid #fbbf24;
+  border-radius: 1rem;
+  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.5;
+  }
+}

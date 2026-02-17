@@ -7,7 +7,8 @@ export function Game(state) {
   const {
     hand, selectedGlyphs, audiences, reactions, stats, roundTime,
     gameState, showHiddenSensitivity, showScoreCalc, lastJokeScore,
-    onGlyphSelect, onDeliverJoke, onScoreComplete, onNextRound, onBackToMenu, onRemoveGlyph
+    onGlyphSelect, onDeliverJoke, onScoreComplete, onNextRound, onBackToMenu, onRemoveGlyph,
+    tutorialHighlight = null
   } = state;
 
   const container = document.createElement('div');
@@ -45,7 +46,7 @@ export function Game(state) {
         <div class="max-w-4xl mx-auto">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-white font-bold text-sm">Joke Crafting (${selectedGlyphs.length}/5)</h3>
-            <button id="deliver-btn" class="px-4 py-2 bg-green-600 text-white font-bold text-xs rounded hover:bg-green-700 disabled:opacity-50" ${selectedGlyphs.length === 0 ? 'disabled' : ''}>
+            <button id="deliver-btn" class="px-4 py-2 bg-green-600 text-white font-bold text-xs rounded hover:bg-green-700 disabled:opacity-50 ${tutorialHighlight === 'deliver' ? 'tutorial-highlight-ring' : ''}" ${selectedGlyphs.length === 0 ? 'disabled' : ''}>
               🎤 Deliver!
             </button>
           </div>
@@ -64,7 +65,7 @@ export function Game(state) {
       <div class="flex-1 p-4">
         <div class="max-w-4xl mx-auto">
           <h3 class="text-white font-bold text-sm mb-2">Your Hand</h3>
-          <div class="flex flex-wrap gap-2 justify-center p-3 bg-black/30 rounded-2xl">
+          <div class="flex flex-wrap gap-2 justify-center p-3 bg-black/30 rounded-2xl ${tutorialHighlight === 'select' ? 'tutorial-highlight-ring' : ''}">
             ${hand.map(g => GlyphCardHTML({
               glyph: g,
               selected: selectedGlyphs.some(sg => sg.id === g.id && sg.symbol === g.symbol),

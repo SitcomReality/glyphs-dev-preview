@@ -73,7 +73,7 @@ export class App {
   }
 
   selectGlyph = (glyph) => {
-    const { selectedGlyphs } = this.state;
+    const { selectedGlyphs, gameState, tutorialStep } = this.state;
     const index = selectedGlyphs.findIndex(g => g.id === glyph.id && g.symbol === glyph.symbol);
     
     let newSelected;
@@ -86,6 +86,15 @@ export class App {
     }
     
     this.setState({ selectedGlyphs: newSelected });
+
+    // Tutorial Progression
+    if (gameState === 'tutorial') {
+      if (tutorialStep === 1 && newSelected.length >= 2) {
+        this.advanceTutorial();
+      } else if (tutorialStep === 2 && newSelected.length >= 3) {
+        this.advanceTutorial();
+      }
+    }
   }
 
   removeGlyph = (index) => {
@@ -95,7 +104,7 @@ export class App {
   }
 
   deliverJoke = () => {
-    const { selectedGlyphs, audiences } = this.state;
+    const { selectedGlyphs, audiences, gameState, tutorialStep } = this.state;
     if (selectedGlyphs.length === 0) return;
     
     const newReactions = {};
@@ -113,6 +122,10 @@ export class App {
       showScoreCalc: true,
       reactions: newReactions
     });
+
+    if (gameState === 'tutorial' && tutorialStep === 4) {
+      this.advanceTutorial();
+    }
   }
 
   handleScoreComplete = (score) => {
@@ -202,10 +215,11 @@ export class App {
 
     if (typeof element === 'string') {
       this.container.innerHTML = element;
-      this.attachEventListeners();
     } else {
       this.container.appendChild(element);
     }
+    
+    this.attachEventListeners();
   }
 
   attachEventListeners() {
@@ -222,15 +236,17 @@ export class App {
     });
 
     // Special handlers for lists
+    // Glyph interaction
     const glyphCards = this.container.querySelectorAll('[data-glyph-id]');
     glyphCards.forEach(card => {
-        card.onclick = () => {
-            const id = card.getAttribute('data-glyph-id');
-            const symbol = card.getAttribute('data-glyph-symbol');
-            // Re-find the glyph object
-            const glyph = [...this.state.hand, ...this.state.selectedGlyphs].find(g => g.id === id && g.symbol === symbol);
-            if (glyph) this.selectGlyph(glyph);
-        };
+      card.onclick = (e) => {
+        e.preventDefault();
+        const id = card.getAttribute('data-glyph-id');
+        const symbol = card.getAttribute('data-glyph-symbol');
+        // Check hand first, then selected
+        const glyph = [...this.state.hand, ...this.state.selectedGlyphs].find(g => g.id === id && g.symbol === symbol);
+        if (glyph) this.selectGlyph(glyph);
+      };
     });
 
     const removeGlyphBtns = this.container.querySelectorAll('[data-remove-index]');
